@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>课程优惠价计算器 & 粘贴求和</title>
+<style>
+  /* ============ 高途风格设计系统 ============ */
+  :root {
+    --gt-primary: #FF443D;
+    --gt-primary-deep: #E02E28;
+    --gt-primary-soft: #FFECEB;
+    --gt-yellow: #EAFF8F;
+    --gt-yellow-soft: #F7FFD6;
+    --gt-dark: #8E2B0C;
+    --gt-text: #1A1A2E;
+    --gt-text-secondary: #6B7280;
+    --gt-text-muted: #9CA3AF;
+    --gt-bg: #FFF9F8;
+    --gt-card: #FFFFFF;
+    --gt-border: #F0E8E7;
+    --gt-border-light: #FAF5F4;
+    --gt-success: #10B981;
+    --gt-success-soft: #ECFDF5;
+    --gt-warning: #F59E0B;
+    --gt-danger: #EF4444;
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+    --radius-pill: 999px;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: var(--gt-text);
+    background: linear-gradient(160deg, #FFF9F8 0%, #FFF3F1 40%, #FFF7F0 100%);
+  }
+
+  .layout {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 22px;
+    width: 100%;
+    max-width: 1000px;
+  }
+
+  .card {
+    flex: 1 1 0;
+    min-width: 0;
+    background: var(--gt-card);
+    border-radius: var(--radius-lg);
+    padding: 28px 24px 24px;
+    box-shadow: 0 8px 32px -8px rgba(255, 68, 61, .08),
+                0 2px 8px rgba(0, 0, 0, .04);
+    border: 1px solid var(--gt-border-light);
+  }
+
+  @media (max-width: 880px) {
+    .layout { flex-direction: column; align-items: center; }
+    .card { max-width: 480px; width: 100%; }
+  }
+
+  .title {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: .5px;
+    margin: 0 0 4px;
+    color: var(--gt-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .title .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--gt-primary);
+    flex-shrink: 0;
+  }
+
+  .subtitle {
+    font-size: 12.5px;
+    color: var(--gt-text-secondary);
+    margin: 0 0 22px;
+    line-height: 1.65;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--radius-md);
+    background: var(--gt-bg);
+    border: 1px solid var(--gt-border);
+    margin-bottom: 11px;
+    transition: border-color .2s, background .2s;
+  }
+  .row:hover { border-color: #FFD6D4; }
+
+  .row .info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .row .name { font-size: 15px; font-weight: 700; color: var(--gt-text); }
+  .row .unit { font-size: 12px; color: var(--gt-text-muted); }
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #fff;
+    border-radius: var(--radius-pill);
+    padding: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+    border: 1px solid var(--gt-border-light);
+    flex-shrink: 0;
+  }
+
+  .stepper button {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: var(--gt-primary-soft);
+    color: var(--gt-primary);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s, transform .1s, opacity .15s;
+    user-select: none;
+  }
+  .stepper button:hover:not(:disabled) { background: #FFD6D4; }
+  .stepper button:active:not(:disabled) { transform: scale(.88); }
+  .stepper button:disabled { opacity: .3; cursor: not-allowed; }
+
+  .stepper input {
+    width: 46px;
+    border: none;
+    outline: none;
+    background: transparent;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 800;
+    font-family: inherit;
+    color: var(--gt-text);
+    padding: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 自定义下拉框 */
+  .gt-dropdown {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .gt-dropdown-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 13px;
+    border: 1px solid var(--gt-border);
+    border-radius: 10px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gt-text);
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+    white-space: nowrap;
+    min-width: 108px;
+  }
+  .gt-dropdown-trigger:hover { border-color: #FFD6D4; background: #FFFDFD; }
+  .gt-dropdown.open .gt-dropdown-trigger {
+    border-color: var(--gt-primary);
+    box-shadow: 0 0 0 3px rgba(255, 68, 61, .1);
+  }
+
+  .gt-dropdown-arrow {
+    color: var(--gt-text-muted);
+    flex-shrink: 0;
+    transition: transform .2s, color .2s;
+  }
+  .gt-dropdown.open .gt-dropdown-arrow {
+    transform: rotate(180deg);
+    color: var(--gt-primary);
+  }
+
+  .gt-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 100%;
+    background: #fff;
+    border-radius: 14px;
+    padding: 6px;
+    box-shadow: 0 12px 32px -8px rgba(15, 23, 42, .18),
+                0 4px 12px rgba(0, 0, 0, .06);
+    border: 1px solid var(--gt-border-light);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px) scale(.96);
+    transform-origin: top right;
+    transition: opacity .18s ease, transform .18s ease, visibility .18s;
+    z-index: 50;
+    pointer-events: none;
+  }
+  .gt-dropdown.open .gt-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  .gt-dropdown-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gt-text);
+    cursor: pointer;
+    transition: background .12s, color .12s;
+    white-space: nowrap;
+  }
+  .gt-dropdown-item:hover {
+    background: var(--gt-primary-soft);
+    color: var(--gt-primary);
+  }
+  .gt-dropdown-item.selected {
+    color: var(--gt-primary);
+    background: var(--gt-primary-soft);
+  }
+  .gt-dropdown-item .check {
+    opacity: 0;
+    color: var(--gt-primary);
+    flex-shrink: 0;
+    transition: opacity .15s;
+  }
+  .gt-dropdown-item.selected .check { opacity: 1; }
+
+  .gt-input {
+    width: 110px;
+    padding: 9px 12px;
+    border: 1px solid var(--gt-border);
+    border-radius: 10px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gt-text);
+    text-align: center;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .gt-input:hover { border-color: #FFD6D4; }
+  .gt-input:focus {
+    border-color: var(--gt-primary);
+    box-shadow: 0 0 0 3px rgba(255, 68, 61, .1);
+  }
+  .gt-input::-webkit-outer-spin-button,
+  .gt-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .gt-input[type=number] { -moz-appearance: textfield; }
+
+  .subject-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 2px;
+    margin: 16px 0 10px;
+  }
+  .subject-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gt-text);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .subject-name .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--gt-primary);
+    flex-shrink: 0;
+  }
+
+  .result {
+    margin-top: 20px;
+    padding: 24px 20px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--gt-primary) 0%, #FF6B4A 50%, #FF8F5E 100%);
+    color: #fff;
+    text-align: center;
+    box-shadow: 0 12px 28px -10px rgba(255, 68, 61, .45);
+    position: relative;
+    overflow: hidden;
+  }
+  .result::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -20px;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .12);
+  }
+  .result::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: -30px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .08);
+  }
+  .result > * { position: relative; z-index: 1; }
+
+  .result-label {
+    font-size: 12.5px;
+    opacity: .9;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .result-price {
+    font-size: 38px;
+    font-weight: 900;
+    letter-spacing: -.5px;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .result-tag {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, .22);
+    backdrop-filter: blur(4px);
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .detail {
+    margin-top: 18px;
+    border-top: 1px dashed var(--gt-border);
+    padding-top: 14px;
+    font-size: 13.5px;
+  }
+
+  .line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    color: var(--gt-text-secondary);
+    gap: 12px;
+  }
+
+  .line b {
+    color: var(--gt-text);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .line b.minus { color: var(--gt-primary); }
+
+  .calc-wrap {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .calc {
+    flex: 1;
+    min-width: 0;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--gt-bg);
+    border: 1px solid var(--gt-border);
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: var(--gt-text-muted);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .3px;
+    word-break: break-all;
+  }
+
+  .btn-copy {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--gt-border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--gt-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .15s ease;
+    font-family: inherit;
+  }
+  .btn-copy:hover {
+    border-color: #FFC9C6;
+    color: var(--gt-primary);
+    background: var(--gt-primary-soft);
+  }
+  .btn-copy:active { transform: scale(.92); }
+
+  .btn-copy .icon-check { display: none; }
+  .btn-copy.copied {
+    border-color: #A7F3D0;
+    color: var(--gt-success);
+    background: var(--gt-success-soft);
+  }
+  .btn-copy.copied .icon-copy { display: none; }
+  .btn-copy.copied .icon-check { display: block; }
+
+  .hidden { display: none !important; }
+
+  .note {
+    margin-top: 14px;
+    font-size: 11.5px;
+    color: var(--gt-text-muted);
+    line-height: 1.7;
+  }
+  .note b { color: var(--gt-primary); }
+
+  .paste-area {
+    display: block;
+    width: 100%;
+    border: 1.5px dashed #FFC9C6;
+    border-radius: var(--radius-md);
+    outline: none;
+    resize: vertical;
+    min-height: 140px;
+    max-height: 320px;
+    padding: 12px 14px;
+    background: var(--gt-bg);
+    font-family: inherit;
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--gt-text);
+    transition: border-color .2s, background .2s, box-shadow .2s;
+  }
+  .paste-area:focus {
+    border-color: var(--gt-primary);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(255, 68, 61, .08);
+  }
+  .paste-area::placeholder { color: #C4B5B3; }
+
+  .paste-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    gap: 10px;
+  }
+
+  .paste-tip {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--gt-text-muted);
+    flex: 1;
+  }
+  .paste-tip.ok { color: var(--gt-success); }
+  .paste-tip.warn { color: var(--gt-warning); }
+  .paste-tip.err { color: var(--gt-danger); }
+
+  .btn-clear {
+    border: 1px solid var(--gt-border);
+    background: #fff;
+    color: var(--gt-text-secondary);
+    font-size: 12px;
+    font-family: inherit;
+    padding: 6px 16px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .btn-clear:hover {
+    border-color: #FFC9C6;
+    color: var(--gt-primary);
+    background: var(--gt-primary-soft);
+  }
+
+  .sum-result {
+    margin-top: 16px;
+    padding: 24px 18px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, #FFF8E7 0%, #FFF3D4 50%, #FFEFC2 100%);
+    color: var(--gt-dark);
+    text-align: center;
+    border: 1.5px solid #FFE4A0;
+    box-shadow: 0 8px 24px -12px rgba(234, 255, 143, .3);
+  }
+
+  .sum-label {
+    font-size: 12.5px;
+    opacity: .8;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    font-weight: 700;
+    color: var(--gt-dark);
+  }
+
+  .sum-value {
+    font-size: 34px;
+    font-weight: 900;
+    letter-spacing: -.5px;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    color: var(--gt-dark);
+  }
+
+  .sum-meta {
+    margin-top: 10px;
+    font-size: 11.5px;
+    opacity: .8;
+    line-height: 1.6;
+    color: var(--gt-dark);
+  }
+
+  .sum-breakdown {
+    margin-top: 13px;
+    border-top: 1px dashed #F0DDB0;
+    padding-top: 11px;
+    font-size: 11.5px;
+    line-height: 1.8;
+    color: #A08A5A;
+    font-variant-numeric: tabular-nums;
+    max-height: 130px;
+    overflow-y: auto;
+    word-break: break-all;
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ============ 卡片 1：优惠价计算器 ============ -->
+  <div class="card">
+    <h1 class="title"><span class="dot"></span>课程优惠价计算器</h1>
+    <p class="subtitle">公共课与统考专业课共享折扣体系；自命题专业课按课时独立折扣</p>
+
+    <!-- 公共课 -->
+    <div class="row">
+      <div class="info">
+        <span class="name">公共课</span>
+        <span class="unit">原价 ¥6980 / 科</span>
+      </div>
+      <div class="stepper">
+        <button type="button" id="generalMinus" aria-label="减少公共课">−</button>
+        <input type="text" id="generalInput" value="0" readonly aria-label="公共课数量">
+        <button type="button" id="generalPlus" aria-label="增加公共课">+</button>
+      </div>
+    </div>
+
+    <!-- 专业课：模式选择 -->
+    <div class="subject-head">
+      <div class="subject-name">
+        <span class="dot"></span>
+        <span>专业课</span>
+      </div>
+      <div class="gt-dropdown" id="dropdownMajorMode" data-value="tongkao">
+        <button type="button" class="gt-dropdown-trigger">
+          <span class="gt-dropdown-label">统考</span>
+          <svg class="gt-dropdown-arrow" width="12" height="12" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <div class="gt-dropdown-menu">
+          <div class="gt-dropdown-item selected" data-value="tongkao">
+            <span>统考</span>
+            <svg class="check" width="14" height="14" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="3"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="gt-dropdown-item" data-value="zipingming">
+            <span>自命题</span>
+            <svg class="check" width="14" height="14" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="3"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 统考面板 -->
+    <div id="panelTongkao">
+      <div class="row">
+        <div class="info">
+          <span class="name">课程数量</span>
+          <span class="unit">原价 ¥7980 / 科</span>
+        </div>
+        <div class="stepper">
+          <button type="button" id="majorMinus" aria-label="减少专业课">−</button>
+          <input type="text" id="majorInput" value="0" readonly aria-label="专业课数量">
+          <button type="button" id="majorPlus" aria-label="增加专业课">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 自命题面板 -->
+    <div id="panelZpm" class="hidden">
+      <div class="row">
+        <div class="info">
+          <span class="name">院校层次</span>
+          <span class="unit" id="hourRateHint">700 元 / 课时</span>
+        </div>
+        <div class="gt-dropdown" id="dropdownSchoolLevel" data-value="c9">
+          <button type="button" class="gt-dropdown-trigger">
+            <span class="gt-dropdown-label">C9 院校</span>
+            <svg class="gt-dropdown-arrow" width="12" height="12" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div class="gt-dropdown-menu">
+            <div class="gt-dropdown-item selected" data-value="c9">
+              <span>C9 院校</span>
+              <svg class="check" width="14" height="14" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="3"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div class="gt-dropdown-item" data-value="985">
+              <span>普通 985</span>
+              <svg class="check" width="14" height="14" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="3"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div class="gt-dropdown-item" data-value="211">
+              <span>211 及以下</span>
+              <svg class="check" width="14" height="14" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="3"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="info">
+          <span class="name">课时数</span>
+          <span class="unit">20 课时起享折扣</span>
+        </div>
+        <input type="number" class="gt-input" id="hoursInput" value="0" min="0" step="1"
+               inputmode="numeric" aria-label="课时数">
+      </div>
+    </div>
+
+    <!-- 结果 -->
+    <div class="result">
+      <div class="result-label">优 惠 后 应 付</div>
+      <div class="result-price" id="finalPrice">¥0</div>
+      <div class="result-tag" id="rateTag">请选择课程数量</div>
+    </div>
+
+    <!-- 明细 -->
+    <div class="detail hidden" id="detail">
+      <div class="line"><span>原价合计</span><b id="lineSubtotal">¥0</b></div>
+      <div class="line"><span id="lineDiscountLabel">折扣优惠</span><b class="minus" id="lineDiscount">-¥0</b></div>
+      <div class="line" id="lineCutWrap"><span>优惠后再减</span><b class="minus">-¥200</b></div>
+
+      <div class="calc-wrap">
+        <div class="calc" id="calcLine"></div>
+        <button type="button" class="btn-copy" id="copyCalc"
+                title="复制计算过程" aria-label="复制计算过程">
+          <svg class="icon-copy" width="15" height="15" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <svg class="icon-check" width="15" height="15" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2.6"
+               stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <p class="note">
+      <b>统考：</b>公共课 + 统考专业课合并计科数，1 科 85 折、2 科 8 折、3 科及以上 75 折（封顶），折扣后再减 200 元。<br>
+      <b>自命题：</b>公共课单独按科数享 85 / 8 / 75 折并减 200 元；自命题专业课按课时计价（C9 700 元、普通 985 400 元、211 及以下 350 元），20 课时及以上 C9 92 折、其他 9 折；40 课时及以上 C9 9 折、其他 85 折，<b>自命题部分不参与公共课折扣体系，也不参与 200 元减免</b>。
+    </p>
+  </div>
+
+  <!-- ============ 卡片 2：粘贴求和 ============ -->
+  <div class="card">
+    <h1 class="title"><span class="dot"></span>粘贴求和</h1>
+    <p class="subtitle">从 Excel / PPT 表格复制一列数字，粘贴到下方自动求和。与左侧计算器互不影响。</p>
+
+    <textarea id="pasteArea" class="paste-area" spellcheck="false"
+      placeholder="从 Excel 或 PPT 表格复制一列数字，粘贴到此处&#10;每行一个，例如：&#10;6980&#10;6980&#10;7980"></textarea>
+
+    <div class="paste-actions">
+      <span class="paste-tip" id="pasteTip">等待粘贴数据…</span>
+      <button type="button" class="btn-clear" id="clearPaste">清空</button>
+    </div>
+
+    <div class="sum-result">
+      <div class="sum-label">合 计</div>
+      <div class="sum-value" id="sumValue">¥0</div>
+      <div class="sum-meta" id="sumMeta">尚未粘贴数据</div>
+    </div>
+
+    <div class="sum-breakdown hidden" id="sumBreakdown"></div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  /* ============================================================
+     常量
+     ============================================================ */
+  const PRICE_MAJOR   = 7980;
+  const PRICE_GENERAL = 6980;
+  const CUT           = 200;
+  const MAX           = 99;
+  const MIN_RATE      = 0.75;
+  const HOUR_RATES = { c9: 700, '985': 400, '211': 350 };
+
+  const state = {
+    generalCount: 0,
+    majorCount: 0,
+    majorMode: 'tongkao',
+    schoolLevel: 'c9',
+    hours: 0
+  };
+
+  const $ = id => document.getElementById(id);
+
+  const el = {
+    generalInput: $('generalInput'),
+    generalMinus: $('generalMinus'),
+    generalPlus: $('generalPlus'),
+    majorInput: $('majorInput'),
+    majorMinus: $('majorMinus'),
+    majorPlus: $('majorPlus'),
+    hourRateHint: $('hourRateHint'),
+    hoursInput: $('hoursInput'),
+    panelTongkao: $('panelTongkao'),
+    panelZpm: $('panelZpm'),
+    finalPrice: $('finalPrice'),
+    rateTag: $('rateTag'),
+    detail: $('detail'),
+    lineSubtotal: $('lineSubtotal'),
+    lineDiscountLabel: $('lineDiscountLabel'),
+    lineDiscount: $('lineDiscount'),
+    lineCutWrap: $('lineCutWrap'),
+    calcLine: $('calcLine'),
+    copyCalc: $('copyCalc')
+  };
+
+  /* ============================================================
+     工具函数
+     ============================================================ */
+  function money(n) {
+    return '¥' + Number(n).toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+  }
+
+  // 统考折扣体系（也用于自命题模式下公共课单独折扣）
+  function getTongkaoRate(count) {
+    let rate = 1, text = '请选择课程数量';
+    if (count >= 3)       { rate = 0.75; text = '3科及以上 75折'; }
+    else if (count === 2) { rate = 0.80; text = '2科 8折'; }
+    else if (count === 1) { rate = 0.85; text = '1科 85折'; }
+    if (rate < MIN_RATE) { rate = MIN_RATE; text = '3科及以上 75折（已封顶）'; }
+    return { rate: rate, text: text };
+  }
+
+  // 自命题折扣
+  function getZpmRate(hours, level) {
+    if (hours >= 40) {
+      return {
+        rate: level === 'c9' ? 0.90 : 0.85,
+        text: level === 'c9' ? '40课时及以上 9折' : '40课时及以上 85折'
+      };
+    }
+    if (hours >= 20) {
+      return {
+        rate: level === 'c9' ? 0.92 : 0.90,
+        text: level === 'c9' ? '20课时及以上 92折' : '20课时及以上 9折'
+      };
+    }
+    return { rate: 1, text: '无折扣' };
+  }
+
+  /* --- 统考公式 --- */
+  function buildFormulaTongkao(g, m, rate, finalPrice) {
+    const parts = [];
+    if (g > 0) parts.push(PRICE_GENERAL + '×' + g);
+    if (m > 0) parts.push(PRICE_MAJOR + '×' + m);
+    if (parts.length === 0) return '';
+
+    let expr = parts.length > 1 ? '(' + parts.join('+') + ')' : '(' + parts[0] + ')';
+    return expr + '×' + rate.toFixed(2) + '−' + CUT + '=' + finalPrice;
+  }
+
+  /* --- 自命题公式：公共课与自命题各自独立计算 --- */
+  function buildFormulaZpm(g, gRate, hours, hourRate, zRate, finalPrice) {
+    const parts = [];
+
+    // 公共课部分：(6980×2)×0.85−200
+    if (g > 0) {
+      parts.push('(' + PRICE_GENERAL + '×' + g + ')×' + gRate.toFixed(2) + '−' + CUT);
+    }
+
+    // 自命题部分：(30×400×0.90) 或 (30×400)
+    if (hours > 0) {
+      let s = '(' + hours + '×' + hourRate;
+      if (zRate < 1) s += '×' + zRate.toFixed(2);
+      s += ')';
+      parts.push(s);
+    }
+
+    if (parts.length === 0) return '';
+    return parts.join('+') + '=' + finalPrice;
+  }
+
+  /* ============================================================
+     核心：刷新界面
+     ============================================================ */
+  function update() {
+    const g = state.generalCount;
+
+    el.generalInput.value = g;
+    el.generalMinus.disabled = g <= 0;
+    el.generalPlus.disabled = g >= MAX;
+
+    el.majorInput.value = state.majorCount;
+    el.majorMinus.disabled = state.majorCount <= 0;
+    el.majorPlus.disabled = state.majorCount >= MAX;
+
+    let subtotal = 0;
+    let discountAmount = 0;
+    let final = 0;
+    let formula = '';
+    let showCut = false;
+    let discountLabelText = '折扣优惠';
+    let tagText = '请选择课程数量';
+
+    if (state.majorMode === 'tongkao') {
+      /* ---------- 统考模式：公共课 + 统考专业课合并折扣 ---------- */
+      const m = state.majorCount;
+      const count = g + m;
+      subtotal = g * PRICE_GENERAL + m * PRICE_MAJOR;
+
+      const r = getTongkaoRate(count);
+      const rate = r.rate;
+      discountAmount = subtotal * (1 - rate);
+      final = count > 0 ? Math.max(subtotal * rate - CUT, 0) : 0;
+      formula = buildFormulaTongkao(g, m, rate, final);
+      showCut = true;
+
+      if (count > 0) {
+        tagText = r.text + '，再减 ¥200';
+        if (rate < 1) discountLabelText = '折扣优惠（' + r.text + '）';
+      } else {
+        tagText = '请选择课程数量';
+      }
+    } else {
+      /* ---------- 自命题模式 ----------
+         公共课：单独按科数享 85/8/75 折，并减 200
+         自命题：按课时独立折扣，不参与公共课折扣体系与 200 减免
+      ------------------------------------------- */
+      const hours = state.hours;
+      const level = state.schoolLevel;
+      const hourRate = HOUR_RATES[level];
+
+      const gRateObj = getTongkaoRate(g);
+      const gRate = g > 0 ? gRateObj.rate : 1;
+
+      const zRateObj = getZpmRate(hours, level);
+      const zRate = zRateObj.rate;
+
+      const gRaw = g * PRICE_GENERAL;
+      const zRaw = hours * hourRate;
+      subtotal = gRaw + zRaw;
+
+      const gDiscount = gRaw * (1 - gRate);
+      const zDiscount = zRaw * (1 - zRate);
+      discountAmount = gDiscount + zDiscount;
+
+      const gFinal = g > 0 ? Math.max(gRaw * gRate - CUT, 0) : 0;
+      const zFinal = zRaw * zRate;
+      final = gFinal + zFinal;
+
+      formula = buildFormulaZpm(g, gRate, hours, hourRate, zRate, final);
+      showCut = g > 0;
+
+      // 折扣标签
+      const dLabels = [];
+      if (g > 0 && gRate < 1) dLabels.push('公共课 ' + gRateObj.text);
+      if (hours > 0 && zRate < 1) dLabels.push('自命题 ' + zRateObj.text);
+      if (dLabels.length > 0) discountLabelText = '折扣优惠（' + dLabels.join('·') + '）';
+
+      // 结果卡片标签
+      const tParts = [];
+      if (g > 0) {
+        tParts.push('公共课 ' + gRateObj.text + '，再减 ¥200');
+      }
+      if (hours > 0) {
+        tParts.push(zRate < 1 ? '自命题 ' + zRateObj.text : '自命题 无折扣');
+      }
+      if (tParts.length === 0) {
+        tagText = '请填写课时数或选择公共课';
+      } else {
+        tagText = tParts.join(' · ');
+      }
+    }
+
+    el.finalPrice.textContent = money(final);
+    el.rateTag.textContent = tagText;
+
+    if (subtotal > 0) {
+      el.detail.classList.remove('hidden');
+      el.lineSubtotal.textContent = money(subtotal);
+      el.lineDiscountLabel.textContent = discountLabelText;
+      el.lineDiscount.textContent = '-' + money(discountAmount);
+      el.lineCutWrap.style.display = showCut ? '' : 'none';
+      el.calcLine.textContent = formula;
+    } else {
+      el.detail.classList.add('hidden');
+      el.calcLine.textContent = '';
+    }
+
+    if (copyTimer) { clearTimeout(copyTimer); copyTimer = null; }
+    if (el.copyCalc) {
+      el.copyCalc.classList.remove('copied');
+      el.copyCalc.title = '复制计算过程';
+    }
+  }
+
+  /* ============================================================
+     自定义下拉组件
+     ============================================================ */
+  function initDropdown(rootId, onChange) {
+    const root = document.getElementById(rootId);
+    if (!root) return;
+
+    const trigger = root.querySelector('.gt-dropdown-trigger');
+    const label = root.querySelector('.gt-dropdown-label');
+    const items = root.querySelectorAll('.gt-dropdown-item');
+
+    const current = root.dataset.value;
+    items.forEach(function (item) {
+      if (item.dataset.value === current) {
+        item.classList.add('selected');
+        const s = item.querySelector('span');
+        if (s) label.textContent = s.textContent;
+      }
+    });
+
+    trigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      document.querySelectorAll('.gt-dropdown.open').forEach(function (d) {
+        if (d !== root) d.classList.remove('open');
+      });
+      root.classList.toggle('open');
+    });
+
+    items.forEach(function (item) {
+      item.addEventListener('click', function (e) {
+        e.stopPropagation();
+
+        const value = item.dataset.value;
+        const s = item.querySelector('span');
+        const text = s ? s.textContent : item.textContent.trim();
+
+        items.forEach(function (it) { it.classList.remove('selected'); });
+        item.classList.add('selected');
+
+        root.dataset.value = value;
+        label.textContent = text;
+        root.classList.remove('open');
+
+        if (onChange) onChange(value, text);
+      });
+    });
+  }
+
+  document.addEventListener('click', function () {
+    document.querySelectorAll('.gt-dropdown.open').forEach(function (d) {
+      d.classList.remove('open');
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.gt-dropdown.open').forEach(function (d) {
+        d.classList.remove('open');
+      });
+    }
+  });
+
+  initDropdown('dropdownMajorMode', function (value) {
+    state.majorMode = value;
+    if (value === 'tongkao') {
+      el.panelTongkao.classList.remove('hidden');
+      el.panelZpm.classList.add('hidden');
+    } else {
+      el.panelTongkao.classList.add('hidden');
+      el.panelZpm.classList.remove('hidden');
+    }
+    update();
+  });
+
+  initDropdown('dropdownSchoolLevel', function (value) {
+    state.schoolLevel = value;
+    el.hourRateHint.textContent = HOUR_RATES[value] + ' 元 / 课时';
+    update();
+  });
+
+  /* ============================================================
+     事件绑定：公共课 / 统考数量
+     ============================================================ */
+  el.generalMinus.addEventListener('click', function () {
+    if (state.generalCount > 0) { state.generalCount--; update(); }
+  });
+  el.generalPlus.addEventListener('click', function () {
+    if (state.generalCount < MAX) { state.generalCount++; update(); }
+  });
+
+  el.majorMinus.addEventListener('click', function () {
+    if (state.majorCount > 0) { state.majorCount--; update(); }
+  });
+  el.majorPlus.addEventListener('click', function () {
+    if (state.majorCount < MAX) { state.majorCount++; update(); }
+  });
+
+  /* ============================================================
+     事件绑定：课时数
+     ============================================================ */
+  el.hoursInput.addEventListener('input', function () {
+    const raw = el.hoursInput.value.trim();
+    if (raw === '') {
+      state.hours = 0;
+    } else {
+      const v = parseFloat(raw);
+      state.hours = (isNaN(v) || v < 0) ? 0 : Math.min(Math.floor(v), 9999);
+    }
+    update();
+  });
+
+  el.hoursInput.addEventListener('blur', function () {
+    el.hoursInput.value = state.hours;
+  });
+
+  /* ============================================================
+     计算过程一键复制
+     ============================================================ */
+  let copyTimer = null;
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '0';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text)
+        .then(function () { return true; })
+        .catch(function () { return fallbackCopy(text); });
+    }
+    return Promise.resolve(fallbackCopy(text));
+  }
+
+  el.copyCalc.addEventListener('click', function () {
+    const text = el.calcLine.textContent.trim();
+    if (!text) return;
+
+    copyToClipboard(text).then(function (ok) {
+      if (!ok) return;
+      el.copyCalc.classList.add('copied');
+      el.copyCalc.title = '已复制';
+      if (copyTimer) clearTimeout(copyTimer);
+      copyTimer = setTimeout(function () {
+        el.copyCalc.classList.remove('copied');
+        el.copyCalc.title = '复制计算过程';
+        copyTimer = null;
+      }, 1600);
+    });
+  });
+
+  /* ============================================================
+     粘贴求和（完全独立）
+     ============================================================ */
+  const pasteArea    = $('pasteArea');
+  const pasteTip     = $('pasteTip');
+  const clearPaste   = $('clearPaste');
+  const sumValue     = $('sumValue');
+  const sumMeta      = $('sumMeta');
+  const sumBreakdown = $('sumBreakdown');
+
+  const NUMBER_RE = /-?\d[\d,]*(?:\.\d+)?/g;
+
+  function normalizeText(text) {
+    return text
+      .replace(/[０-９]/g, function (ch) {
+        return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+      })
+      .replace(/[，]/g, ',')
+      .replace(/[。．]/g, '.')
+      .replace(/[－—–]/g, '-')
+      .replace(/[＋]/g, '+')
+      .replace(/[\u00A0\u202F\u2007\u2060]/g, ' ')
+      .replace(/[\t\v\f\u0007\u001C-\u001F\u2028\u2029]+/g, '\n')
+      .replace(/\r\n?/g, '\n');
+  }
+
+  function parseNumbers(text) {
+    const normalized = normalizeText(text);
+    const lines = normalized.split('\n');
+    const values = [];
+    let skippedLines = 0;
+
+    lines.forEach(function (line) {
+      const t = line.trim();
+      if (!t) return;
+
+      const matches = t.match(NUMBER_RE);
+      if (matches && matches.length > 0) {
+        matches.forEach(function (m) {
+          const v = parseFloat(m.replace(/,/g, ''));
+          if (!isNaN(v)) values.push(v);
+        });
+      } else {
+        skippedLines++;
+      }
+    });
+
+    return { values: values, skippedLines: skippedLines };
+  }
+
+  function formatSum(n) {
+    return '¥' + Number(n).toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+  }
+
+  function setTip(text, type) {
+    pasteTip.textContent = text;
+    pasteTip.className = 'paste-tip' + (type ? ' ' + type : '');
+  }
+
+  function refreshSum() {
+    const raw = pasteArea.value;
+
+    if (!raw.trim()) {
+      sumValue.textContent = '¥0';
+      sumMeta.textContent = '尚未粘贴数据';
+      sumBreakdown.classList.add('hidden');
+      sumBreakdown.textContent = '';
+      setTip('等待粘贴数据…');
+      return;
+    }
+
+    const result = parseNumbers(raw);
+    const values = result.values;
+    const skippedLines = result.skippedLines;
+
+    if (values.length === 0) {
+      sumValue.textContent = '¥0';
+      sumMeta.textContent = '未识别到数字';
+      sumBreakdown.classList.add('hidden');
+      sumBreakdown.textContent = '';
+      setTip('未识别到数字，请检查粘贴内容', 'err');
+      return;
+    }
+
+    let sum = 0;
+    for (let i = 0; i < values.length; i++) sum += values[i];
+
+    sumValue.textContent = formatSum(sum);
+
+    let meta = '共 ' + values.length + ' 个数字';
+    if (skippedLines > 0) meta += '，忽略 ' + skippedLines + ' 行无数字内容';
+    sumMeta.textContent = meta;
+
+    if (values.length > 1) {
+      sumBreakdown.textContent = values.join(' + ') + ' = ' + sum;
+      sumBreakdown.classList.remove('hidden');
+    } else {
+      sumBreakdown.classList.add('hidden');
+      sumBreakdown.textContent = '';
+    }
+
+    let tip = '已识别 ' + values.length + ' 个数字，合计 ' + formatSum(sum);
+    let type = 'ok';
+    if (skippedLines > 0) {
+      tip += '（忽略 ' + skippedLines + ' 行）';
+      type = 'warn';
+    }
+    setTip(tip, type);
+  }
+
+  pasteArea.addEventListener('paste', function (e) {
+    const clipboard = e.clipboardData || window.clipboardData;
+    if (!clipboard) return;
+
+    let text = clipboard.getData('text/plain');
+    if (!text) {
+      const html = clipboard.getData('text/html');
+      if (html) {
+        text = html
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<\/(p|div|tr|li|h[1-6])>/gi, '\n')
+          .replace(/<[^>]+>/g, '')
+          .replace(/&nbsp;/gi, ' ')
+          .replace(/&amp;/gi, '&')
+          .replace(/&lt;/gi, '<')
+          .replace(/&gt;/gi, '>');
+      }
+    }
+    if (!text) return;
+
+    e.preventDefault();
+
+    const start = pasteArea.selectionStart;
+    const end = pasteArea.selectionEnd;
+    const before = pasteArea.value.slice(0, start);
+    const after = pasteArea.value.slice(end);
+    pasteArea.value = before + text + after;
+
+    const caret = start + text.length;
+    pasteArea.selectionStart = pasteArea.selectionEnd = caret;
+
+    refreshSum();
+  });
+
+  pasteArea.addEventListener('input', refreshSum);
+
+  clearPaste.addEventListener('click', function () {
+    pasteArea.value = '';
+    refreshSum();
+    pasteArea.focus();
+  });
+
+  /* ============================================================
+     初始化
+     ============================================================ */
+  el.hourRateHint.textContent = HOUR_RATES[state.schoolLevel] + ' 元 / 课时';
+  refreshSum();
+  update();
+})();
+</script>
+
+</body>
+</html>
